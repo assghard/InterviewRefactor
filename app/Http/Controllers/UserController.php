@@ -2,42 +2,55 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\UserRequest;
+use App\Models\User;
 use App\Services\UserService;
-use Illuminate\Routing\Controller;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\CreateUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 
-final class UserController extends Controller
+class UserController extends Controller
 {
-    public function create()
+    public function index()
     {
-        return view('user.crreate');
+        $users = User::orderBy('id', 'DESC')->paginate(10);
+
+        return view('users.index', compact('users'));
     }
 
-    public function save(UserRequest $request)
+    public function create()
     {
-        app()->make(UserService::class)->save($request);
+        return view('users.create');
+    }
 
-        return redirect('/');
+    public function store(CreateUserRequest $request, UserService $userService)
+    {
+        $user = $userService->createNewUser($request->name, $request->email, $request->password);
+
+        return redirect()->route('users.index')->withSuccess('User '.$user->email.' has been created successfully');
     }
 
     public function edit($id)
     {
-        $user = app()->make(UserService::class)->GetById($id);
-        return view('user.edit', compact('user'));
+        $user = User::findOrFail($id);
+
+        return view('users.edit', compact('user'));
     }
 
-    public function update(int $id)
+    public function update($id, UpdateUserRequest $request)
     {
-        app()->make(UserService::class)->update($id, request()->all());
+        $user = User::findOrFail($id);
+        $user->update($request->validated());
 
-        return redirect('/');
+        if(isset($request->button) && $request->button == 'index'){
+            return redirect()->route('users.index')->withSuccess('User '.$user->email.' has been updated');
+        }
+
+        return redirect()->back()->withSuccess('User '.$user->email.' has been updated');
     }
 
-    public function delete(int $id): RedirectResponse
+    public function destroy($id)
     {
-        \DB::table('users')->where('id', $id)->delete();
+        User::findOrFail($id)->delete($id);
 
-        return redirect('/');
+        return response()->json(['success' => true, 'message' => 'User has been deleted']);
     }
 }

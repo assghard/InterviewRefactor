@@ -4,41 +4,36 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Http\Requests\UserRequest;
-use App\Repositories\UserRepository;
-use Exception;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
-final class UserService
+class UserService
 {
-    public function __construct(private UserRepository $UserRepository)
-    {}
-
-    public function save(UserRequest $request): void
+    /**
+     * Create new user with hashed password and save it to database
+     *
+     * @param string $name
+     * @param string $email
+     * @param string $password
+     * @return User
+     */
+    public function createNewUser(string $name, string $email, string $password) : User
     {
-        $this->UserRepository->save([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password,
+        return User::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => $this->makeHashedPassword($password)
         ]);
     }
 
-    public function GetById($id)
+    /**
+     * Make hash from user password
+     *
+     * @param string $password
+     * @return string
+     */
+    private function makeHashedPassword(string $password) : string
     {
-        $user = $this->UserRepository->find($id);
-
-        if (null !== $user) {
-            return $user;
-        } else {
-            throw new Exception('User doesnt exist');
-        }
-    }
-
-    public function update(int $id, array $data): void
-    {
-        $user = $this->GetById($id);
-        $this->UserRepository->update($id, [
-            'name' => $data['name'],
-            'email' => $data['email'],
-        ]);
+        return Hash::make($password);
     }
 }
